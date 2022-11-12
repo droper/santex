@@ -26,22 +26,54 @@ class RequestSource:
         response = requests.get(competitions_url, headers=cls.header)
         competitions_json = response.json()
 
-        for competition in competitions_json["competitions"]:
-            if competitions["code"] == league_code:
-                return competition
+        if "competitions" in competitions_json and len(competitions_json["competitions"]) > 0:
+            for competition in competitions_json["competitions"]:
+                if competition["code"] == league_code:
+                    return competition
 
-        return competitions_json
+        return {}
 
-
-    def competition_teams(self, competition_id):
+    @classmethod
+    def competition_teams(cls, competition_id):
         """
-        Search for the teams in a competition.
+        Returns the teams in a competition.
 
         * Request competitions/<id>/teams?year=<year>, using the present year
         * Create a list of dicts with the team and players data.
         * Return the list
         """
 
-        competition_teams_url = ''.join([self.url, f"competitions/{competition_id}/teams"])
+        competition_teams_url = ''.join([cls.url, f"competitions/{competition_id}/teams"])
 
-        response = requests.get(competition_teams_url, headers=self.header)
+        response = requests.get(competition_teams_url, headers=cls.header)
+        teams_json = response.json()
+
+        if "teams" in teams_json:
+            return teams_json["teams"]
+
+        return []
+
+    @classmethod
+    def team(cls, code):
+        """
+        Returns the team data
+        """
+
+        teams_url = ''.join([cls.url, "teams"])
+
+        response = requests.get(teams_url, headers=cls.header)
+        teams_json = response.json()
+
+        print("meeee")
+        if "teams" in teams_json:
+            for team in teams_json["teams"]:
+                if team["tla"] == code:
+                    return team
+
+        return {}
+
+
+
+
+
+
