@@ -5,6 +5,8 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from django.forms.models import model_to_dict
+
 from api.models import Competition, Team, Player
 from api.serializers import CompetitionSerializer, TeamSerializer, PlayerSerializer
 
@@ -59,7 +61,8 @@ class ImportLeagueView(APIView):
                             "competition": [competition.id]
                         }
                         serializer = TeamSerializer(data=data)
-                        serializer.is_valid(raise_exception=True)
+                        if not serializer.is_valid(raise_exception=True):
+                            return Response(serializer.data, status=201)
                         team = serializer.save()
 
                         return_data["teams"].append(data)
@@ -76,7 +79,8 @@ class ImportLeagueView(APIView):
                                         "team": team.id
                                     }
                                     serializer = PlayerSerializer(data=data)
-                                    serializer.is_valid(raise_exception=True)
+                                    if not serializer.is_valid(raise_exception=True):
+                                        return Response(serializer.data, status=201)
                                     serializer.save()
 
                                     return_data["players"].append(data)
@@ -90,7 +94,8 @@ class ImportLeagueView(APIView):
                                     "type": "CO"
                                 }
                                 serializer = PlayerSerializer(data=data)
-                                serializer.is_valid(raise_exception=True)
+                                if not serializer.is_valid(raise_exception=True):
+                                    return Response(serializer.data, status=201)
                                 serializer.save()
 
                                 return_data["players"].append(data)
@@ -107,7 +112,26 @@ class PlayersView(generics.ListAPIView):
     def get(self, request):
         """Return all the players from the teams in a league"""
 
-        return Response()
+        # If there is a league_code parameter and the competition exists
+        # obtain the competition, the teams associated with the competition,
+        # the players of each team and return them in a list of dicts
+        if ("league_code" in request.query_params and
+                Competition.objects.filter(code=request.query_params.get("league_code")).exists()):
+            competition = Competition.objects.get(code=request.query_params.get("league_code"))
+
+            teams = Team.objects.all()
+            if "team" in request.query_params and Team.objects.filter(tla=request.query_params.get("league_code")):
+                teams = teams.filter(competition=competition)
+
+            players = []
+            for team in teams:
+                team_players = self.queryset.filter(team=team).values(
+                    "name", "position", "date_of_birth", "nationality"
+                )
+                players.extend(team_players)
+            return Response(players)
+        else:
+            return Response(f"There is no league with code {request.query_params.get('league_code')}")
 
 
 class TeamView(generics.ListAPIView):
@@ -119,10 +143,20 @@ class TeamView(generics.ListAPIView):
     def get(self, request):
         """Return Team's data"""
 
-        if "code" in request.query_params:
-            return Response(RequestSource.team(request.query_params["code"]))
+        result = {}
+        # If the tla is in the query parameters retrieve the team data for the response
+        if "code" in request.query_params and Team.objects.filter(tla=request.query_params.get("code")):
+            team = Team.objects.get(tla=request.query_params.get("code"))
+            team_serializer = TeamSerializer(team)
+            result["team"] = team_serializer.data
 
-        return Response()
+            players = []
+            # If the players flag is True, then retrieve the players data
+            if "players" in request.query_params and request.query_params.get("players").upper() == "T":
+                players.extend(Player.objects.filter(team=team).values())
+            result["players"] = players
+
+        return Response(result)
 
 
 class TeamPlayersView(generics.ListAPIView):
@@ -133,5 +167,9 @@ class TeamPlayersView(generics.ListAPIView):
 
     def get(self, request):
         """Return the players of a team"""
+
+        if "team_code" in request.query_params and Team.objects.filter(tla=request.query_params.get("team_code")):
+            team = Team.objects.get(tla=request.query_params.get("team_code"))
+            return Response(Player.objects.filter(team=team).values())
 
         return Response()

@@ -8,7 +8,7 @@ class Competition(models.Model):
     """Model to store the competitions"""
 
     name = models.CharField(max_length=100)
-    code = models.CharField(max_length=10)
+    code = models.CharField(max_length=10, unique=True)
     area_name = models.CharField(max_length=100)
 
     class Meta:
@@ -22,7 +22,7 @@ class Team(models.Model):
     """Model to store the teams"""
 
     name = models.CharField(max_length=100)
-    tla = models.CharField(max_length=10)
+    tla = models.CharField(max_length=10, unique=True)
     short_name = models.CharField(max_length=30)
     area_name = models.CharField(max_length=20)
     address = models.CharField(max_length=100)
