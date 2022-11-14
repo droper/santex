@@ -33,17 +33,18 @@ class ImportLeagueView(APIView):
 
                 # If there is no data in competition, return empty value
                 if not competition_data:
-                    return Response()
+                    return Response(return_data)
 
                 data = {
                     "name": competition_data["name"],
                     "code": competition_data["code"],
                     "area_name": competition_data["area"]["name"]
                 }
-                serializer = self.serializer_class(data=data)
-                serializer.is_valid(raise_exception=True)
-                competition = serializer.save()
 
+                serializer = self.serializer_class(data=data)
+                if not serializer.is_valid(raise_exception=True):
+                    return Response(serializer.data, status=201)
+                competition = serializer.save()
                 return_data["competition"] = data
 
                 # Obtain the competition teams and save them if the team is not already saved
@@ -168,6 +169,7 @@ class TeamPlayersView(generics.ListAPIView):
     def get(self, request):
         """Return the players of a team"""
 
+        # If there is a team_code parameter and the team exists return the players from the team.
         if "team_code" in request.query_params and Team.objects.filter(tla=request.query_params.get("team_code")):
             team = Team.objects.get(tla=request.query_params.get("team_code"))
             return Response(Player.objects.filter(team=team).values())
