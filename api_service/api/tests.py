@@ -1,16 +1,124 @@
 # encoding: utf-8
 """Tests for api_service"""
 
-from datetime import datetime
+import requests
+
 from unittest.mock import patch
 
 from django.urls import reverse
-from django.utils.timezone import make_aware
 
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from api.models import Competition, Team, Player
+from api.request_sources import RequestSource
+
+
+class RequestSourceTest(APITestCase):
+    """Test RequestSource class methods"""
+
+    @patch("requests.get")
+    def test_competition(self, get_request_mock):
+        """
+        Test that the competition method returns the competition with the requested code
+        """
+
+        # The mocked return for the /competitions endpoint in api.football-data.org/v4
+        get_return_value = {
+            "count": 166,
+            "filters": {},
+            "competitions": [
+                {
+                    "id": 2006,
+                    "area": {"id": 2001, "name": "Africa", "code": "AFR", "flag": None},
+                    "name": "WC Qualification CAF",
+                    "code": "QCAF",
+                    "type": "CUP",
+                    "emblem": None,
+                    "plan": "TIER_FOUR",
+                    "currentSeason": {"id": 555, "startDate": "2019-09-04", "endDate": "2021-11-16",
+                                      "currentMatchday": 6, "winner": None},
+                    "numberOfAvailableSeasons": 2,
+                    "lastUpdated": "2022-03-13T18:51:44Z"
+                }
+            ]
+        }
+
+        # If the code exists in the data, return the competition data
+        get_request_mock.return_value.json.return_value = get_return_value
+        self.assertEqual(RequestSource.competition("QCAF"), get_return_value["competitions"][0])
+
+        # If the code does not exist, return and empty dict
+        get_request_mock.return_value.json.return_value = get_return_value
+        self.assertEqual(RequestSource.competition("code"), {})
+
+    @patch("requests.get")
+    def test_competition_teams(self, get_request_mock):
+        """
+        Test that the competition_teams method returns the teams in a competition
+        """
+
+        # The mocked return for the /competitions endpoint in api.football-data.org/v4
+        get_return_value = {
+            "count": 20,
+            "filters": {
+                "season": "2022"
+            },
+            "competition": {
+                "id": 2013,
+                "name": "Campeonato Brasileiro Série A",
+                "code": "BSA",
+                "type": "LEAGUE",
+                "emblem": "https://crests.football-data.org/764.svg"
+            },
+            "season": {
+                "id": 1377,
+                "startDate": "2022-04-10",
+                "endDate": "2022-11-13",
+                "currentMatchday": 38,
+                "winner": None
+            },
+            "teams": ["Team 1", "Team 2"]
+        }
+
+        # If the code exists, return the teams
+        get_request_mock.return_value.json.return_value = get_return_value
+        self.assertEqual(RequestSource.competition_teams(2013), get_return_value["teams"])
+
+        # If the competition id does not exist, return and empty list
+        get_request_mock.return_value.json.return_value = {}
+        self.assertEqual(RequestSource.competition_teams(1), [])
+
+    @patch("requests.get")
+    def test_team(self, get_request_mock):
+        """
+        Test that the team method returns the team data
+        """
+
+        get_return_value = {
+            "teams": [
+                {
+                    "id": 1,
+                    "name": "1. FC Köln",
+                    "shortName": "1. FC Köln",
+                    "tla": "KOE"
+                },
+                {
+                    "id": 2,
+                    "name": "TSG 1899 Hoffenheim",
+                    "shortName": "Hoffenheim",
+                    "tla": "TSG"
+                }
+            ]
+        }
+
+        # If the code exist, return and empty dict
+        get_request_mock.return_value.json.return_value = get_return_value
+        self.assertEqual(RequestSource.team("TSG"), get_return_value["teams"][1])
+
+        # If code does not does not exist, return and empty list
+        get_request_mock.return_value.json.return_value = {}
+        self.assertEqual(RequestSource.team("no"), {})
 
 
 class ImportLeagueTest(APITestCase):
@@ -222,7 +330,7 @@ class TeamTest(GetEndpointTest):
 
     def test_team(self):
         """
-        Test that the /team endpoint reaturns the team data and the players data.
+        Test that the /team endpoint returns the team data and the players data.
         """
 
         url = reverse("team")

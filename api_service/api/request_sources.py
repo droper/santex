@@ -56,7 +56,7 @@ class RequestSource:
     @classmethod
     def team(cls, code):
         """
-        Returns the team data
+        Returns a team data
         """
 
         teams_url = ''.join([cls.url, "teams"])
@@ -64,16 +64,9 @@ class RequestSource:
         response = requests.get(teams_url, headers=cls.header)
         teams_json = response.json()
 
-        print("meeee")
         if "teams" in teams_json:
             for team in teams_json["teams"]:
                 if team["tla"] == code:
                     return team
 
         return {}
-
-
-
-
-
-
