@@ -134,6 +134,59 @@ class PlayersTest(APITestCase):
 
         url = reverse("players")
 
+        # Create objects in the database
+        competition = Competition(id=1, name="name 1", code="code", area_name="area 1")
+        competition.save()
+
+        team1 = Team(id=1, name="name 1", tla="code1", short_name="sn1", area_name="area 1", address="address 1")
+        team1.save()
+        team1.competition.add(competition)
+        team1.save()
+        team2 = Team(id=2, name="name 2", tla="code2", short_name="sn2", area_name="area 2", address="address 2")
+        team2.save()
+        team2.competition.add(competition)
+        team2.save()
+
+        player1 = Player(id=1, name="player 1", position="position 1", date_of_birth="1999-10-06", nationality="Peru",
+                         team=team1, type="PL")
+        player1.save()
+        player2 = Player(id=2, name="player 2", position="position 2", date_of_birth="1998-05-16", nationality="Bolivia",
+                         team=team2, type="PL")
+        player2.save()
+
+        # The data that must be in the response
+        response_data = [
+            {
+                "name": "player 1",
+                "position": "position 1",
+                "date_of_birth": "1999-10-06",
+                "nationality": "Peru"
+            },
+            {
+                "name": "player 2",
+                "position": "position 2",
+                "date_of_birth": "1998-05-16",
+                "nationality": "Bolivia"
+            }
+        ]
+
+        # Request the endpoint with the competition code to retrieve all the players
+        response = self.client.get(url, {"league_code": "code"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), response_data)
+
+        # If requested with no parameter or with an unexistant one the response
+        # is an error message
+        response = self.client.get(url, {"league_code": "no code"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), "There is no league with code no code")
+
+        # If requested with no parameter or with an unexistant one the response
+        # is an error message
+        response = self.client.get(url, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), "There is no league with code None")
+
 
 class TeamTest(APITestCase):
     """Test for /team endpoint"""
