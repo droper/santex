@@ -27,4 +27,4 @@ class PlayerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Player
-        exclude = ["id"]
+        exclude = ["id", "team", "type"]

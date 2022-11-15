@@ -42,10 +42,10 @@ class ImportLeagueTest(APITestCase):
                 "area": {"name": "area"},
                 "address": "address 1",
                 "coach": {
-                        "name": "coach name",
-                        "dateOfBirth": "1980-06-10",
-                        "nationality": "Argentina",
-                    },
+                    "name": "coach name",
+                    "dateOfBirth": "1980-06-10",
+                    "nationality": "Argentina",
+                },
                 "squad": [
                     {
                         "name": "player name 1",
@@ -123,7 +123,69 @@ class ImportLeagueTest(APITestCase):
         self.assertEqual(response.json(), {})
 
 
-class PlayersTest(APITestCase):
+class GetEndpointTest(APITestCase):
+    """Base class for testing the get endpoints"""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Create objects for the database"""
+
+        # Create objects in the database
+        cls.competition = Competition(id=1, name="name 1", code="code", area_name="area 1")
+        cls.competition.save()
+
+        cls.team1 = Team(id=1, name="name 1", tla="code1", short_name="sn1", area_name="area 1", address="address 1")
+        cls.team1.save()
+        cls.team1.competition.add(cls.competition)
+        cls.team1.save()
+        cls.team2 = Team(id=2, name="name 2", tla="code2", short_name="sn2", area_name="area 2", address="address 2")
+        cls.team2.save()
+        cls.team2.competition.add(cls.competition)
+        cls.team2.save()
+
+        cls.player1 = Player(id=1, name="player 1", position="position 1", date_of_birth="1999-10-06",
+                             nationality="Peru",
+                             team=cls.team1, type="PL")
+        cls.player1.save()
+        cls.player2 = Player(id=2, name="player 2", position="position 2", date_of_birth="1998-05-16",
+                             nationality="Bolivia",
+                             team=cls.team2, type="PL")
+        cls.player2.save()
+
+        cls.team1_response_data = {
+            "name": "name 1",
+            "tla": "code1",
+            "short_name": "sn1",
+            "area_name": "area 1",
+            "address": "address 1",
+            "competition": [1]
+        }
+
+        cls.team2_response_data = {
+            "name": "name 2",
+            "tla": "code2",
+            "short_name": "sn2",
+            "area_name": "area 2",
+            "address": "address 2",
+            "competition": [2]
+        }
+
+        cls.player1_response_data = {
+                "name": "player 1",
+                "position": "position 1",
+                "date_of_birth": "1999-10-06",
+                "nationality": "Peru"
+            }
+
+        cls.player2_response_data = {
+                "name": "player 2",
+                "position": "position 2",
+                "date_of_birth": "1998-05-16",
+                "nationality": "Bolivia"
+            }
+
+
+class PlayersTest(GetEndpointTest):
     """Test for /players endpoint"""
 
     def test_players(self):
@@ -134,41 +196,8 @@ class PlayersTest(APITestCase):
 
         url = reverse("players")
 
-        # Create objects in the database
-        competition = Competition(id=1, name="name 1", code="code", area_name="area 1")
-        competition.save()
-
-        team1 = Team(id=1, name="name 1", tla="code1", short_name="sn1", area_name="area 1", address="address 1")
-        team1.save()
-        team1.competition.add(competition)
-        team1.save()
-        team2 = Team(id=2, name="name 2", tla="code2", short_name="sn2", area_name="area 2", address="address 2")
-        team2.save()
-        team2.competition.add(competition)
-        team2.save()
-
-        player1 = Player(id=1, name="player 1", position="position 1", date_of_birth="1999-10-06", nationality="Peru",
-                         team=team1, type="PL")
-        player1.save()
-        player2 = Player(id=2, name="player 2", position="position 2", date_of_birth="1998-05-16", nationality="Bolivia",
-                         team=team2, type="PL")
-        player2.save()
-
         # The data that must be in the response
-        response_data = [
-            {
-                "name": "player 1",
-                "position": "position 1",
-                "date_of_birth": "1999-10-06",
-                "nationality": "Peru"
-            },
-            {
-                "name": "player 2",
-                "position": "position 2",
-                "date_of_birth": "1998-05-16",
-                "nationality": "Bolivia"
-            }
-        ]
+        response_data = [self.player1_response_data, self.player2_response_data]
 
         # Request the endpoint with the competition code to retrieve all the players
         response = self.client.get(url, {"league_code": "code"}, format="json")
@@ -188,26 +217,60 @@ class PlayersTest(APITestCase):
         self.assertEqual(response.json(), "There is no league with code None")
 
 
-class TeamTest(APITestCase):
+class TeamTest(GetEndpointTest):
     """Test for /team endpoint"""
 
-    def test_stats(self):
+    def test_team(self):
         """
-        Ensure we obtain the desired stats from the endpoint and
-        that only a super_user can see them.
+        Test that the /team endpoint reaturns the team data and the players data.
         """
 
         url = reverse("team")
 
+        # If requested with an existent competition code, the response
+        # is the team data
+        response = self.client.get(url, {"tla": "code1"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), {"team": self.team1_response_data})
 
-class TeamPlayersTest(APITestCase):
+        # If requested an unexistant one the response is an error message
+        response = self.client.get(url, {"tla": "no code"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), "There is no team with tla no code")
+
+        # If requested with an existent competition code, the response
+        # is the team data
+        response = self.client.get(url, {"tla": "code1", "players": "T"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), {"team": self.team1_response_data, "players": [self.player1_response_data]})
+
+        # If requested with no parameter the response is an empty dict
+        response = self.client.get(url, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), "There is no team with tla None")
+
+
+class TeamPlayersTest(GetEndpointTest):
     """Test for /team/players endpoint"""
 
-    @patch("requests.get")
-    def test_stock(self, request_get_mock):
+    def test_team_players(self):
         """
-        Ensure we obtain the stock data and only an authenticated user
-        can access
+        Test that the endpoint /team/players returns the players of the team
         """
 
         url = reverse("team_players")
+
+        # Test the endpoint with a team code
+        response = self.client.get(url, {"team_code": "code1"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), [self.player1_response_data])
+
+        # Test the endpoint with an invalid team code
+        response = self.client.get(url, {"team_code": "no code"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), "There is no team with code no code")
+
+        # If requested with no parameter the response is an empty dict
+        response = self.client.get(url, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), "There is no team with code None")

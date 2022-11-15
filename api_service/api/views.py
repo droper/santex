@@ -131,8 +131,8 @@ class PlayersView(generics.ListAPIView):
                 )
                 players.extend(team_players)
             return Response(players)
-        else:
-            return Response(f"There is no league with code {request.query_params.get('league_code')}")
+
+        return Response(f"There is no league with code {request.query_params.get('league_code')}")
 
 
 class TeamView(generics.ListAPIView):
@@ -145,19 +145,21 @@ class TeamView(generics.ListAPIView):
         """Return Team's data"""
 
         result = {}
-        # If the tla is in the query parameters retrieve the team data for the response
-        if "code" in request.query_params and Team.objects.filter(tla=request.query_params.get("code")):
-            team = Team.objects.get(tla=request.query_params.get("code"))
-            team_serializer = TeamSerializer(team)
+        # If the tla is in the query parameters and the team exist, retrieve the team data for the response
+        if "tla" in request.query_params and Team.objects.filter(tla=request.query_params.get("tla")):
+            team = Team.objects.get(tla=request.query_params.get("tla"))
+            team_serializer = self.serializer_class(team)
             result["team"] = team_serializer.data
 
-            players = []
             # If the players flag is True, then retrieve the players data
             if "players" in request.query_params and request.query_params.get("players").upper() == "T":
-                players.extend(Player.objects.filter(team=team).values())
-            result["players"] = players
+                players = Player.objects.filter(team=team).values()
+                player_serializer = PlayerSerializer(players, many=True)
+                result["players"] = player_serializer.data
 
-        return Response(result)
+            return Response(result)
+
+        return Response(f"There is no team with tla {request.query_params.get('tla')}")
 
 
 class TeamPlayersView(generics.ListAPIView):
@@ -172,6 +174,8 @@ class TeamPlayersView(generics.ListAPIView):
         # If there is a team_code parameter and the team exists return the players from the team.
         if "team_code" in request.query_params and Team.objects.filter(tla=request.query_params.get("team_code")):
             team = Team.objects.get(tla=request.query_params.get("team_code"))
-            return Response(Player.objects.filter(team=team).values())
+            players = Player.objects.filter(team=team).values()
+            player_serializer = PlayerSerializer(players, many=True)
+            return Response(player_serializer.data)
 
-        return Response()
+        return Response(f"There is no team with code {request.query_params.get('team_code')}")
