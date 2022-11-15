@@ -49,7 +49,6 @@ class RequestSourceTest(APITestCase):
         self.assertEqual(RequestSource.competition("QCAF"), get_return_value["competitions"][0])
 
         # If the code does not exist, return and empty dict
-        get_request_mock.return_value.json.return_value = get_return_value
         self.assertEqual(RequestSource.competition("code"), {})
 
     @patch("requests.get")
@@ -58,7 +57,7 @@ class RequestSourceTest(APITestCase):
         Test that the competition_teams method returns the teams in a competition
         """
 
-        # The mocked return for the /competitions endpoint in api.football-data.org/v4
+        # The mocked return for the competitions/<id>/teams endpoint in api.football-data.org/v4
         get_return_value = {
             "count": 20,
             "filters": {
@@ -116,7 +115,7 @@ class RequestSourceTest(APITestCase):
         get_request_mock.return_value.json.return_value = get_return_value
         self.assertEqual(RequestSource.team("TSG"), get_return_value["teams"][1])
 
-        # If code does not does not exist, return and empty list
+        # If code does not exist, return and empty list
         get_request_mock.return_value.json.return_value = {}
         self.assertEqual(RequestSource.team("no"), {})
 
@@ -136,6 +135,7 @@ class ImportLeagueTest(APITestCase):
 
         # The data to be mocked from RequestSource.competition
         competition_input_data = {
+            "id": 1,
             "name": "league name",
             "code": "code",
             "area": {"name": "area"}
@@ -191,14 +191,12 @@ class ImportLeagueTest(APITestCase):
             "position": "position 1",
             "date_of_birth": "2001-07-16",
             "nationality": "Peru",
-            "team": 1
         }
         player2_data = {
             "name": "player name 2",
             "position": "position 2",
             "date_of_birth": "2000-08-01",
             "nationality": "Bolivia",
-            "team": 1
         }
 
         return_data = {

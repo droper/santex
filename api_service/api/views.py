@@ -38,7 +38,7 @@ class ImportLeagueView(APIView):
                 data = {
                     "name": competition_data["name"],
                     "code": competition_data["code"],
-                    "area_name": competition_data["area"]["name"]
+                    "area_name": competition_data["area"]["name"],
                 }
 
                 serializer = self.serializer_class(data=data)
@@ -48,17 +48,20 @@ class ImportLeagueView(APIView):
                 return_data["competition"] = data
 
                 # Obtain the competition teams and save them if the team is not already saved
-                competition_team_data = RequestSource.competition_teams(competition_data["code"])
+                competition_team_data = RequestSource.competition_teams(competition_data["id"])
                 return_data["teams"] = []
                 return_data["players"] = []
                 for team_data in competition_team_data:
-                    if not Team.objects.filter(tla=team_data["tla"]).exists():
+                    if Team.objects.filter(tla=team_data["tla"]).exists():
+                        team = Team.objects.get(tla=team_data["tla"])
+                        team.competition.add(competition)
+                    else:
                         data = {
                             "name": team_data["name"],
                             "short_name": team_data["shortName"],
                             "tla": team_data["tla"],
                             "area_name": team_data["area"]["name"],
-                            "address": team_data["address"],
+                            "address": team_data["address"][:100],
                             "competition": [competition.id]
                         }
                         serializer = TeamSerializer(data=data)
@@ -68,7 +71,7 @@ class ImportLeagueView(APIView):
 
                         return_data["teams"].append(data)
 
-                        # Save the players
+                        # If there is a squad save the players, if not, save the coach.
                         if "squad" in team_data:
                             for player_data in team_data["squad"]:
                                 if not Player.objects.filter(name=player_data["name"]).exists():
@@ -77,14 +80,17 @@ class ImportLeagueView(APIView):
                                         "position": player_data["position"],
                                         "date_of_birth": player_data["dateOfBirth"],
                                         "nationality": player_data["nationality"],
-                                        "team": team.id
                                     }
                                     serializer = PlayerSerializer(data=data)
                                     if not serializer.is_valid(raise_exception=True):
                                         return Response(serializer.data, status=201)
-                                    serializer.save()
+                                    player = serializer.save()
+                                    # Need to update the object with the team
+                                    # because the serializer excludes the team
+                                    player.team = team
+                                    player.save()
 
-                                    return_data["players"].append(data)
+                                    return_data["players"].append(serializer.validated_data)
                         else:
                             if not Player.objects.filter(name=team_data["coach"]["name"]).exists():
                                 data = {
@@ -97,9 +103,13 @@ class ImportLeagueView(APIView):
                                 serializer = PlayerSerializer(data=data)
                                 if not serializer.is_valid(raise_exception=True):
                                     return Response(serializer.data, status=201)
-                                serializer.save()
+                                player = serializer.save()
+                                # Need to update the object with the team
+                                # because the serializer excludes the team
+                                player.team = team
+                                player.save()
 
-                                return_data["players"].append(data)
+                                return_data["players"].append(serializer.validated_data)
 
         return Response(return_data)
 
