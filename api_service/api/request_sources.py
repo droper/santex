@@ -3,6 +3,8 @@
 
 import requests
 
+import datetime
+
 
 class RequestSource:
     """Class with functions for each kind of source"""
@@ -21,12 +23,15 @@ class RequestSource:
         * Return a dict with the competition data.
         """
 
-        competitions_url = ''.join([cls.url, "competitions"])
+        competitions_url = "".join([cls.url, "competitions"])
 
         response = requests.get(competitions_url, headers=cls.header)
         competitions_json = response.json()
 
-        if "competitions" in competitions_json and len(competitions_json["competitions"]) > 0:
+        if (
+            "competitions" in competitions_json
+            and len(competitions_json["competitions"]) > 0
+        ):
             for competition in competitions_json["competitions"]:
                 if competition["code"] == league_code:
                     return competition
@@ -34,7 +39,7 @@ class RequestSource:
         return {}
 
     @classmethod
-    def competition_teams(cls, competition_id):
+    def competition_teams(cls, competition_id, year=datetime.date.today().year):
         """
         Returns the teams in a competition.
 
@@ -43,9 +48,11 @@ class RequestSource:
         * Return the list
         """
 
-        competition_teams_url = ''.join([cls.url, f"competitions/{competition_id}/teams"])
+        competition_teams_url = "".join(
+            [cls.url, f"competitions/{competition_id}/teams"]
+        )
 
-        response = requests.get(competition_teams_url, headers=cls.header)
+        response = requests.get(competition_teams_url, {"season": year}, headers=cls.header)
         teams_json = response.json()
 
         if "teams" in teams_json:
@@ -59,7 +66,7 @@ class RequestSource:
         Returns a team data
         """
 
-        teams_url = ''.join([cls.url, "teams"])
+        teams_url = "".join([cls.url, "teams"])
 
         response = requests.get(teams_url, headers=cls.header)
         teams_json = response.json()

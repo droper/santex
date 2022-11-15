@@ -36,17 +36,24 @@ class RequestSourceTest(APITestCase):
                     "type": "CUP",
                     "emblem": None,
                     "plan": "TIER_FOUR",
-                    "currentSeason": {"id": 555, "startDate": "2019-09-04", "endDate": "2021-11-16",
-                                      "currentMatchday": 6, "winner": None},
+                    "currentSeason": {
+                        "id": 555,
+                        "startDate": "2019-09-04",
+                        "endDate": "2021-11-16",
+                        "currentMatchday": 6,
+                        "winner": None,
+                    },
                     "numberOfAvailableSeasons": 2,
-                    "lastUpdated": "2022-03-13T18:51:44Z"
+                    "lastUpdated": "2022-03-13T18:51:44Z",
                 }
-            ]
+            ],
         }
 
         # If the code exists in the data, return the competition data
         get_request_mock.return_value.json.return_value = get_return_value
-        self.assertEqual(RequestSource.competition("QCAF"), get_return_value["competitions"][0])
+        self.assertEqual(
+            RequestSource.competition("QCAF"), get_return_value["competitions"][0]
+        )
 
         # If the code does not exist, return and empty dict
         self.assertEqual(RequestSource.competition("code"), {})
@@ -60,29 +67,29 @@ class RequestSourceTest(APITestCase):
         # The mocked return for the competitions/<id>/teams endpoint in api.football-data.org/v4
         get_return_value = {
             "count": 20,
-            "filters": {
-                "season": "2022"
-            },
+            "filters": {"season": "2022"},
             "competition": {
                 "id": 2013,
                 "name": "Campeonato Brasileiro Série A",
                 "code": "BSA",
                 "type": "LEAGUE",
-                "emblem": "https://crests.football-data.org/764.svg"
+                "emblem": "https://crests.football-data.org/764.svg",
             },
             "season": {
                 "id": 1377,
                 "startDate": "2022-04-10",
                 "endDate": "2022-11-13",
                 "currentMatchday": 38,
-                "winner": None
+                "winner": None,
             },
-            "teams": ["Team 1", "Team 2"]
+            "teams": ["Team 1", "Team 2"],
         }
 
         # If the code exists, return the teams
         get_request_mock.return_value.json.return_value = get_return_value
-        self.assertEqual(RequestSource.competition_teams(2013), get_return_value["teams"])
+        self.assertEqual(
+            RequestSource.competition_teams(2013), get_return_value["teams"]
+        )
 
         # If the competition id does not exist, return and empty list
         get_request_mock.return_value.json.return_value = {}
@@ -100,14 +107,14 @@ class RequestSourceTest(APITestCase):
                     "id": 1,
                     "name": "1. FC Köln",
                     "shortName": "1. FC Köln",
-                    "tla": "KOE"
+                    "tla": "KOE",
                 },
                 {
                     "id": 2,
                     "name": "TSG 1899 Hoffenheim",
                     "shortName": "Hoffenheim",
-                    "tla": "TSG"
-                }
+                    "tla": "TSG",
+                },
             ]
         }
 
@@ -138,7 +145,7 @@ class ImportLeagueTest(APITestCase):
             "id": 1,
             "name": "league name",
             "code": "code",
-            "area": {"name": "area"}
+            "area": {"name": "area"},
         }
 
         # The data to be mocked from RequestSource.competition_teams
@@ -167,7 +174,7 @@ class ImportLeagueTest(APITestCase):
                         "dateOfBirth": "2000-08-01",
                         "nationality": "Bolivia",
                     },
-                ]
+                ],
             }
         ]
 
@@ -175,7 +182,7 @@ class ImportLeagueTest(APITestCase):
         competition_output_data = {
             "name": "league name",
             "code": "code",
-            "area_name": "area"
+            "area_name": "area",
         }
 
         team_data = {
@@ -184,7 +191,7 @@ class ImportLeagueTest(APITestCase):
             "tla": "tla",
             "area_name": "area",
             "address": "address 1",
-            "competition": [1]
+            "competition": [1],
         }
         player1_data = {
             "name": "player name 1",
@@ -202,7 +209,7 @@ class ImportLeagueTest(APITestCase):
         return_data = {
             "competition": competition_output_data,
             "teams": [team_data],
-            "players": [player1_data, player2_data]
+            "players": [player1_data, player2_data],
         }
 
         # Mock returns
@@ -211,7 +218,9 @@ class ImportLeagueTest(APITestCase):
 
         # Call the endpoint with league_code and verify that it returns the required data
         # and saves the data
-        response = self.client.post(url, {"league_code": competition_input_data["code"]}, format="json")
+        response = self.client.post(
+            url, {"league_code": competition_input_data["code"]}, format="json"
+        )
         self.assertEqual(response.json(), return_data)
 
         # If called with no post parameter, the endpoint returns an empty dict
@@ -237,25 +246,53 @@ class GetEndpointTest(APITestCase):
         """Create objects for the database"""
 
         # Create objects in the database
-        cls.competition = Competition(id=1, name="name 1", code="code", area_name="area 1")
+        cls.competition = Competition(
+            id=1, name="name 1", code="code", area_name="area 1"
+        )
         cls.competition.save()
 
-        cls.team1 = Team(id=1, name="name 1", tla="code1", short_name="sn1", area_name="area 1", address="address 1")
+        cls.team1 = Team(
+            id=1,
+            name="name 1",
+            tla="code1",
+            short_name="sn1",
+            area_name="area 1",
+            address="address 1",
+        )
         cls.team1.save()
         cls.team1.competition.add(cls.competition)
         cls.team1.save()
-        cls.team2 = Team(id=2, name="name 2", tla="code2", short_name="sn2", area_name="area 2", address="address 2")
+        cls.team2 = Team(
+            id=2,
+            name="name 2",
+            tla="code2",
+            short_name="sn2",
+            area_name="area 2",
+            address="address 2",
+        )
         cls.team2.save()
         cls.team2.competition.add(cls.competition)
         cls.team2.save()
 
-        cls.player1 = Player(id=1, name="player 1", position="position 1", date_of_birth="1999-10-06",
-                             nationality="Peru",
-                             team=cls.team1, type="PL")
+        cls.player1 = Player(
+            id=1,
+            name="player 1",
+            position="position 1",
+            date_of_birth="1999-10-06",
+            nationality="Peru",
+            team=cls.team1,
+            type="PL",
+        )
         cls.player1.save()
-        cls.player2 = Player(id=2, name="player 2", position="position 2", date_of_birth="1998-05-16",
-                             nationality="Bolivia",
-                             team=cls.team2, type="PL")
+        cls.player2 = Player(
+            id=2,
+            name="player 2",
+            position="position 2",
+            date_of_birth="1998-05-16",
+            nationality="Bolivia",
+            team=cls.team2,
+            type="PL",
+        )
         cls.player2.save()
 
         cls.team1_response_data = {
@@ -264,7 +301,7 @@ class GetEndpointTest(APITestCase):
             "short_name": "sn1",
             "area_name": "area 1",
             "address": "address 1",
-            "competition": [1]
+            "competition": [1],
         }
 
         cls.team2_response_data = {
@@ -273,22 +310,22 @@ class GetEndpointTest(APITestCase):
             "short_name": "sn2",
             "area_name": "area 2",
             "address": "address 2",
-            "competition": [2]
+            "competition": [2],
         }
 
         cls.player1_response_data = {
-                "name": "player 1",
-                "position": "position 1",
-                "date_of_birth": "1999-10-06",
-                "nationality": "Peru"
-            }
+            "name": "player 1",
+            "position": "position 1",
+            "date_of_birth": "1999-10-06",
+            "nationality": "Peru",
+        }
 
         cls.player2_response_data = {
-                "name": "player 2",
-                "position": "position 2",
-                "date_of_birth": "1998-05-16",
-                "nationality": "Bolivia"
-            }
+            "name": "player 2",
+            "position": "position 2",
+            "date_of_birth": "1998-05-16",
+            "nationality": "Bolivia",
+        }
 
 
 class PlayersTest(GetEndpointTest):
@@ -348,7 +385,10 @@ class TeamTest(GetEndpointTest):
         # is the team data
         response = self.client.get(url, {"tla": "code1", "players": "T"}, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.json(), {"team": self.team1_response_data, "players": [self.player1_response_data]})
+        self.assertEqual(
+            response.json(),
+            {"team": self.team1_response_data, "players": [self.player1_response_data]},
+        )
 
         # If requested with no parameter the response is an empty dict
         response = self.client.get(url, format="json")

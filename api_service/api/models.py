@@ -12,10 +12,10 @@ class Competition(models.Model):
     area_name = models.CharField(max_length=100)
 
     class Meta:
-        ordering = ['name']
+        ordering = ["name"]
 
     def __str__(self):
-        return ' '.join([self.name, self.code])
+        return " ".join([self.name, self.code])
 
 
 class Team(models.Model):
@@ -29,22 +29,19 @@ class Team(models.Model):
     competition = models.ManyToManyField(Competition)
 
     class Meta:
-        ordering = ['name']
+        ordering = ["name"]
 
     def __str__(self):
-        return ' '.join([self.name, self.tla])
+        return " ".join([self.name, self.tla])
 
 
 class Player(models.Model):
     """Model to store the players"""
 
-    PLAYER = 'PL'
-    COACH = 'CO'
+    PLAYER = "PL"
+    COACH = "CO"
 
-    TYPE_TEAM_MEMBER = [
-        (PLAYER, 'Player'),
-        (COACH, 'Coach')
-    ]
+    TYPE_TEAM_MEMBER = [(PLAYER, "Player"), (COACH, "Coach")]
 
     name = models.CharField(max_length=100)
     position = models.CharField(max_length=30, blank=True, null=True)
@@ -54,7 +51,7 @@ class Player(models.Model):
     type = models.CharField(max_length=2, choices=TYPE_TEAM_MEMBER, default=PLAYER)
 
     class Meta:
-        ordering = ['name']
+        ordering = ["name"]
 
     def __str__(self):
-        return ' '.join([self.name, self.type])
+        return " ".join([self.name, self.type])

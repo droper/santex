@@ -28,8 +28,12 @@ class ImportLeagueView(APIView):
 
         if "league_code" in request.data:
             # Obtain competition and save in the database
-            if not Competition.objects.filter(code=request.data["league_code"]).exists():
-                competition_data = RequestSource.competition(request.data["league_code"])
+            if not Competition.objects.filter(
+                code=request.data["league_code"]
+            ).exists():
+                competition_data = RequestSource.competition(
+                    request.data["league_code"]
+                )
 
                 # If there is no data in competition, return empty value
                 if not competition_data:
@@ -48,7 +52,9 @@ class ImportLeagueView(APIView):
                 return_data["competition"] = data
 
                 # Obtain the competition teams and save them if the team is not already saved
-                competition_team_data = RequestSource.competition_teams(competition_data["id"])
+                competition_team_data = RequestSource.competition_teams(
+                    competition_data["id"]
+                )
                 return_data["teams"] = []
                 return_data["players"] = []
                 for team_data in competition_team_data:
@@ -62,7 +68,7 @@ class ImportLeagueView(APIView):
                             "tla": team_data["tla"],
                             "area_name": team_data["area"]["name"],
                             "address": team_data["address"][:100],
-                            "competition": [competition.id]
+                            "competition": [competition.id],
                         }
                         serializer = TeamSerializer(data=data)
                         if not serializer.is_valid(raise_exception=True):
@@ -74,7 +80,9 @@ class ImportLeagueView(APIView):
                         # If there is a squad save the players, if not, save the coach.
                         if "squad" in team_data:
                             for player_data in team_data["squad"]:
-                                if not Player.objects.filter(name=player_data["name"]).exists():
+                                if not Player.objects.filter(
+                                    name=player_data["name"]
+                                ).exists():
                                     data = {
                                         "name": player_data["name"],
                                         "position": player_data["position"],
@@ -90,15 +98,19 @@ class ImportLeagueView(APIView):
                                     player.team = team
                                     player.save()
 
-                                    return_data["players"].append(serializer.validated_data)
+                                    return_data["players"].append(
+                                        serializer.validated_data
+                                    )
                         else:
-                            if not Player.objects.filter(name=team_data["coach"]["name"]).exists():
+                            if not Player.objects.filter(
+                                name=team_data["coach"]["name"]
+                            ).exists():
                                 data = {
                                     "name": team_data["coach"]["name"],
                                     "date_of_birth": team_data["coach"]["dateOfBirth"],
                                     "nationality": team_data["coach"]["nationality"],
                                     "team": team.id,
-                                    "type": "CO"
+                                    "type": "CO",
                                 }
                                 serializer = PlayerSerializer(data=data)
                                 if not serializer.is_valid(raise_exception=True):
@@ -126,12 +138,20 @@ class PlayersView(generics.ListAPIView):
         # If there is a league_code parameter and the competition exists
         # obtain the competition, the teams associated with the competition,
         # the players of each team and return them in a list of dicts
-        if ("league_code" in request.query_params and
-                Competition.objects.filter(code=request.query_params.get("league_code")).exists()):
-            competition = Competition.objects.get(code=request.query_params.get("league_code"))
+        if (
+            "league_code" in request.query_params
+            and Competition.objects.filter(
+                code=request.query_params.get("league_code")
+            ).exists()
+        ):
+            competition = Competition.objects.get(
+                code=request.query_params.get("league_code")
+            )
 
             teams = Team.objects.all()
-            if "team" in request.query_params and Team.objects.filter(tla=request.query_params.get("league_code")):
+            if "team" in request.query_params and Team.objects.filter(
+                tla=request.query_params.get("league_code")
+            ):
                 teams = teams.filter(competition=competition)
 
             players = []
@@ -142,7 +162,9 @@ class PlayersView(generics.ListAPIView):
                 players.extend(team_players)
             return Response(players)
 
-        return Response(f"There is no league with code {request.query_params.get('league_code')}")
+        return Response(
+            f"There is no league with code {request.query_params.get('league_code')}"
+        )
 
 
 class TeamView(generics.ListAPIView):
@@ -156,13 +178,18 @@ class TeamView(generics.ListAPIView):
 
         result = {}
         # If the tla is in the query parameters and the team exist, retrieve the team data for the response
-        if "tla" in request.query_params and Team.objects.filter(tla=request.query_params.get("tla")):
+        if "tla" in request.query_params and Team.objects.filter(
+            tla=request.query_params.get("tla")
+        ):
             team = Team.objects.get(tla=request.query_params.get("tla"))
             team_serializer = self.serializer_class(team)
             result["team"] = team_serializer.data
 
             # If the players flag is True, then retrieve the players data
-            if "players" in request.query_params and request.query_params.get("players").upper() == "T":
+            if (
+                "players" in request.query_params
+                and request.query_params.get("players").upper() == "T"
+            ):
                 players = Player.objects.filter(team=team).values()
                 player_serializer = PlayerSerializer(players, many=True)
                 result["players"] = player_serializer.data
@@ -182,10 +209,14 @@ class TeamPlayersView(generics.ListAPIView):
         """Return the players of a team"""
 
         # If there is a team_code parameter and the team exists return the players from the team.
-        if "team_code" in request.query_params and Team.objects.filter(tla=request.query_params.get("team_code")):
+        if "team_code" in request.query_params and Team.objects.filter(
+            tla=request.query_params.get("team_code")
+        ):
             team = Team.objects.get(tla=request.query_params.get("team_code"))
             players = Player.objects.filter(team=team).values()
             player_serializer = PlayerSerializer(players, many=True)
             return Response(player_serializer.data)
 
-        return Response(f"There is no team with code {request.query_params.get('team_code')}")
+        return Response(
+            f"There is no team with code {request.query_params.get('team_code')}"
+        )
