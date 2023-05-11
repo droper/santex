@@ -30,14 +30,23 @@ last season by default.
 #### Serializarers
 The serializers just implement a generic ModelSerializer with some fields excluded.
 
-## How to run the project
+### How to run the project
 * Create a virtualenv: `python -m venv virtualenv` and activate it `source virtualenv/bin/activate`.
 * Install dependencies: `pip install -r requirements.txt`
 * Create the initial migration: `python manage.py makemigrations`
 * Execute the api service admin migrations: `python manage.py migrate`
 * Start the api service: `cd api_service ; ./manage.py runserver 8000`
 
-## Create two users
+### Create two users
 * Create a superuser: `python manage.py createsuperuser`
-* Login into `http://127.0.0.1:8000/admin` and create a normal user.
+* Login into `http://127.0.0.1:8000/admin/` and create a normal user.
+
+### Invoke the endpoints
+
+* To request the import_league endpoint: `curl -X POST -H "Content-Type: application/json" -d '{"league_code": "$CODE"}' http://127.0.0.1:8000/import_league`
+* To request the players post page: `http://127.0.0.1:8000/players?league_code=$CODE`
+* To request a team data: `http://127.0.0.1:8000/team?tla=$TEAM_TLA&players=T`
+* To request a team players data: `http://127.0.0.1:8000/team/players?team_code=$CODE`
+
+
 

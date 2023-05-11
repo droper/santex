@@ -122,7 +122,8 @@ class ImportLeagueView(APIView):
                                 player.save()
 
                                 return_data["players"].append(serializer.validated_data)
-
+            else:
+                return Response("Competition already in the database")
         return Response(return_data)
 
 

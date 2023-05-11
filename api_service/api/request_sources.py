@@ -11,28 +11,30 @@ class RequestSource:
 
     header = {"X-Auth-Token": "22eefbd381c04a66bfcb7cb0d1324eda"}
     url = "http://api.football-data.org/v4/"
+    competitions_name = "competitions"
 
     @classmethod
     def competition(cls, league_code):
         """
         Returns the information obtained from football-data.
 
-        To obtain the information this steps are followed:
+        To obtain the information these steps are followed:
         * Request /competitions and obtain all the competitions (leagues) data
         * Search for the league_code in the competitions data
         * Return a dict with the competition data.
         """
 
-        competitions_url = "".join([cls.url, "competitions"])
+        competitions_url = "".join([cls.url, cls.competitions_name])
 
         response = requests.get(competitions_url, headers=cls.header)
         competitions_json = response.json()
 
         if (
-            "competitions" in competitions_json
-            and len(competitions_json["competitions"]) > 0
+            cls.competitions_name in competitions_json
+            and len(competitions_json[cls.competitions_name]) > 0
         ):
-            for competition in competitions_json["competitions"]:
+            for competition in competitions_json[cls.competitions_name]:
+                print(competition)
                 if competition["code"] == league_code:
                     return competition
 
@@ -49,10 +51,12 @@ class RequestSource:
         """
 
         competition_teams_url = "".join(
-            [cls.url, f"competitions/{competition_id}/teams"]
+            [cls.url, f"{cls.competitions_name}/{competition_id}/teams"]
         )
 
-        response = requests.get(competition_teams_url, {"season": year}, headers=cls.header)
+        response = requests.get(
+            competition_teams_url, {"season": year}, headers=cls.header
+        )
         teams_json = response.json()
 
         if "teams" in teams_json:
